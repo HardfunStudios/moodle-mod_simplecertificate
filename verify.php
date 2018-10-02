@@ -50,8 +50,7 @@ if (!$verifyform->get_data()) {
 } else {
     $issuedcert = get_issued_cert($code);
 
-    $user = $DB->get_record('user', array('id' => $issuedcert->userid));
-    if ($user) {
+    if ($user = $DB->get_record('user', array('id' => $issuedcert->userid))) {
         $username = fullname($user);
     } else {
         $username = get_string('notavailable');
@@ -66,7 +65,10 @@ if (!$verifyform->get_data()) {
     $table->tablealign = "center";
     $table->head = array(get_string('course'), $strto, $strdate, $strcode);
     $table->align = array("left", "left", "center", "center");
-    $coursename = get_course_name($issuedcert);
+    // Try to get coursename.
+    if (!$coursename = $issuedcert->coursename) {
+        $coursename = get_string('coursenotfound', 'simplecertificate');
+    }
     $table->data[] = array($coursename, $username,
             userdate($issuedcert->timecreated) . simplecertificate_print_issue_certificate_file($issuedcert), $issuedcert->code);
     echo html_writer::table($table);
@@ -89,37 +91,11 @@ echo $OUTPUT->footer();
 function get_issued_cert($code = null) {
     global $DB;
 
-    $issuedcert = $DB->get_record("simplecertificate_issues", array('code' => $code));
-    if (!$issuedcert) {
+    if (!$issuedcert = $DB->get_record("simplecertificate_issues", array('code' => $code))) {
         print_error(get_string('invalidcode', 'simplecertificate'));
     }
     return $issuedcert;
 }
-
-/**
- * Try to get course name, or return 'course not found!'
- *
- * @param issuedcert Issued certificate object
- */
-function get_course_name($issuedcert) {
-    global $DB;
-
-    if ($issuedcert->coursename) {
-        return $issuedcert->coursename;
-    }
-
-    $cm = get_coursemodule_from_instance('simplecertificate', $issuedcert->certificateid);
-    if ($cm) {
-        $course = $DB->get_record('coruse', array('id' => $cm->course));
-        if ($course) {
-            return $course->fullname;
-        }
-    }
-
-    return get_string('coursenotfound', 'simplecertificate');
-}
-
-
 
 
 
